@@ -1,6 +1,3 @@
-# Edu2Job-AI-Career-Recommendation
-AI-based career recommendation system using Machine Learning, Flask, and MongoDB
-
 # Edu2Job – AI-Based Career Recommendation System
 
 Edu2Job is an AI-powered web application that recommends suitable job roles based on a user's education, skills, and academic performance using Machine Learning.
