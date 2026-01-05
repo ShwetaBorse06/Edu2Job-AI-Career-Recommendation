@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Education Details</title>
+<style>
+body {font-family:"Poppins",system-ui,Arial;background:linear-gradient(135deg,#6a11cb,#2575fc);margin:0;color:#111}
+.wrap {min-height:100vh;display:flex;align-items:center;justify-content:center;padding:30px;box-sizing:border-box}
+.card {background:#fff;width:100%;max-width:760px;padding:26px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.25)}
+h1 {margin:0 0 18px 0}
+label {display:block;margin-bottom:6px;font-weight:600;color:#333}
+input,select,textarea {width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;margin-bottom:4px;box-sizing:border-box}
+.grid {display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.full {grid-column:1/-1}
+.actions {display:flex;gap:12px;justify-content:flex-end;margin-top:18px}
+.btn {padding:10px 14px;border-radius:8px;border:none;cursor:pointer;font-weight:700}
+.btn-save {background:linear-gradient(90deg,#7c3aed,#06b6d4);color:#fff}
+.btn-cancel {background:#eee;color:#333}
+.error {color:#e11d48;font-size:13px;margin-bottom:8px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>Education Details</h1>
+    <form id="eduForm">
+      <div class="grid">
+        <div><label>Degree</label><select id="degree">
+          <option value="">Select Degree</option>
+          <option>B.Tech</option><option>BSc</option><option>BCA</option>
+          <option>M.Tech</option><option>MSc</option><option>Bachelor's</option>
+          <option>Intermediate</option><option>Master's</option>
+          <option>Matric</option><option>PhD</option>
+        </select><p id="degreeError" class="error"></p></div>
+
+        <div><label>Specialization</label><select id="specialization">
+          <option value="">Select Specialization</option>
+          <option>CSE</option><option>IT</option><option>ECE</option>
+          <option>Mechanical</option><option>Civil</option><option>Arts</option>
+          <option>Business</option><option>Commerce</option><option>Computer Science</option>
+          <option>Engineering</option><option>Finance</option>
+          <option>Psychology</option><option>Science</option>
+        </select><p id="specError" class="error"></p></div>
+
+        <div><label>University / Institute</label><input id="university" type="text" placeholder="Enter institute name"></div>
+        <div><label>CGPA / Percentage</label><input id="cgpa" type="number" step="0.01" placeholder="e.g., 8.5"><p id="cgpaError" class="error"></p></div>
+        <div><label>Year of Graduation</label><input id="year" type="number" placeholder="e.g., 2023"><p id="yearError" class="error"></p></div>
+        <div><label>Certifications</label><input id="certifications" type="text"placeholder="AWS Certified, CFA Level 1, Google Data Analytics"></div>
+        <div class="full"><label>Notes (optional)</label><textarea id="notes" rows="3" placeholder="Any extra information"></textarea></div>
+      </div>
+
+      <div class="actions">
+        <button type="button" id="cancelBtn" class="btn btn-cancel">Cancel</button>
+        <button type="submit" class="btn btn-save">Save & Redirect to Dashboard</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const token = localStorage.getItem("token");
+if(!token) window.location.href="login.html";
+
+const degree = document.getElementById("degree");
+const specialization = document.getElementById("specialization");
+const university = document.getElementById("university");
+const cgpa = document.getElementById("cgpa");
+const year = document.getElementById("year");
+const certifications = document.getElementById("certifications");
+const notes = document.getElementById("notes");
+
+const degreeError = document.getElementById("degreeError");
+const specError = document.getElementById("specError");
+const cgpaError = document.getElementById("cgpaError");
+const yearError = document.getElementById("yearError");
+
+document.getElementById("cancelBtn").addEventListener("click",()=>window.location.href="dashboard.html");
+
+// Load saved education
+async function loadEducation(){
+  try{
+    const res = await fetch("http://127.0.0.1:5000/education/me",{headers:{"Authorization":"Bearer "+token}});
+    if(!res.ok) return;
+    const data = await res.json();
+    if(data.degree) degree.value=data.degree;
+    if(data.specialization) specialization.value=data.specialization;
+    if(data.university) university.value=data.university;
+    if(data.cgpa!==undefined&&data.cgpa!==null) cgpa.value=data.cgpa;
+    if(data.year) year.value=data.year;
+    if(data.certifications) certifications.value=data.certifications;
+    if(data.notes) notes.value=data.notes;
+  }catch(e){console.error(e);}
+}
+loadEducation();
+
+// Submit
+document.getElementById("eduForm").addEventListener("submit", async function(ev){
+  ev.preventDefault();
+  degreeError.textContent = specError.textContent = cgpaError.textContent = yearError.textContent = "";
+
+  let valid=true;
+  const cg = cgpa.value.trim()?parseFloat(cgpa.value):null;
+  const yr = parseInt(year.value);
+
+  if(!degree.value.trim()){degreeError.textContent="Degree is required"; valid=false;}
+  if(!specialization.value.trim()){specError.textContent="Specialization is required"; valid=false;}
+  if(cg!==null && (cg<0||cg>10)){cgpaError.textContent="CGPA must be 0-10"; valid=false;}
+  if(isNaN(yr) || yr<2000){yearError.textContent="Year must be ≥ 2000"; valid=false;}
+  if(!valid) return;
+
+  const data={degree:degree.value.trim(),specialization:specialization.value.trim(),
+    university:university.value.trim(),cgpa:cg,year:yr,
+    certifications:certifications.value.trim(),notes:notes.value.trim()};
+
+  try{
+    const res = await fetch("http://127.0.0.1:5000/education/add",{method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
+      body:JSON.stringify(data)});
+    const result = await res.json();
+    if(!res.ok){alert(result.error?JSON.stringify(result.error):"Server error"); return;}
+    window.location.href="dashboard.html";
+  }catch(e){console.error(e); alert("Server error");}
+});
+</script>
+</body>
+</html>

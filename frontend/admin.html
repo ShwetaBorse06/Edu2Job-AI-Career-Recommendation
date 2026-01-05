@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Edu2Job • Admin Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+:root{
+  --bg:#0f172a;
+  --card:#111827;
+  --accent:#38bdf8;
+  --muted:#94a3b8;
+  --text:#e5e7eb;
+  --danger:#ef4444;
+  --success:#22c55e;
+}
+
+*{margin:0;box-sizing:border-box;font-family:Poppins}
+body{background:var(--bg);color:var(--text);display:flex}
+
+/* SIDEBAR */
+.sidebar{
+  width:240px;
+  min-height:100vh;
+  background:#020617;
+  padding:25px;
+}
+.sidebar h2{color:var(--accent);margin-bottom:40px}
+.sidebar a{
+  display:block;
+  color:var(--muted);
+  margin:18px 0;
+  text-decoration:none;
+}
+.sidebar a:hover{color:var(--accent)}
+
+/* MAIN */
+.main{
+  flex:1;
+  padding:32px;
+}
+
+/* COMMON */
+.card{
+  background:var(--card);
+  padding:20px;
+  border-radius:16px;
+  box-shadow:0 15px 40px rgba(0,0,0,.4);
+}
+.card h3{margin-bottom:12px}
+
+button{
+  width:100%;
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  font-weight:700;
+  cursor:pointer;
+}
+button.primary{background:var(--accent)}
+button.success{background:var(--success)}
+
+input{
+  width:100%;
+  padding:10px;
+  border-radius:8px;
+  border:none;
+  margin-bottom:10px;
+}
+
+/* ADMIN LAYOUT */
+.admin-wrapper{
+  display:flex;
+  flex-direction:column;
+  gap:24px;
+}
+
+.admin-controls{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+  gap:20px;
+}
+
+/* TABLES */
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:14px;
+}
+th,td{
+  padding:10px;
+  border-bottom:1px solid #1e293b;
+  text-align:left;
+}
+th{color:var(--accent)}
+
+.badge{
+  padding:4px 8px;
+  border-radius:6px;
+  font-size:12px;
+}
+.normal{background:#334155}
+.reviewed{background:#15803d}
+
+/* UTIL */
+.text-danger{color:var(--danger)}
+
+.kpi-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:20px;
+}
+.kpi{
+  background:#020617;
+  padding:18px;
+  border-radius:14px;
+  text-align:center;
+}
+.kpi h2{font-size:28px;color:var(--accent)}
+.kpi p{color:var(--muted)}
+
+</style>
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <h2>🎓 Edu2Job</h2>
+  <a href="admin.html">Dashboard</a>
+  <a href="#" onclick="logout()" class="text-danger">
+    <i class="fa fa-sign-out-alt"></i> Logout
+  </a>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+<h1>Admin Dashboard</h1>
+
+<div class="admin-wrapper">
+
+  <!-- ADMIN DETAILS -->
+  <div class="card">
+    <h3>👤 Admin Details</h3>
+    <p>Name: <b id="aname">—</b></p>
+    <p>Email: <b id="aemail">—</b></p>
+    <p>Role: <b>Admin</b></p>
+  </div>
+
+  <div class="kpi-grid">
+
+    <div class="kpi">
+      <p>Total Users</p>
+      <h2 id="kpiUsers">—</h2>
+    </div>
+  
+    <div class="kpi">
+      <p>Total Predictions</p>
+      <h2 id="kpiPredictions">—</h2>
+    </div>
+  
+    <div class="kpi">
+      <p>Predictions Today</p>
+      <h2 id="kpiToday">—</h2>
+    </div>
+  
+  </div>
+  
+
+  <!-- CONTROL PANEL -->
+  <div class="card">
+    <h3>🛠 Admin Control Panel</h3>
+    <div class="admin-controls">
+
+      <div class="card" style="background:#020617">
+        <h4>📁 Upload Dataset</h4>
+        <input type="file" id="datasetFile">
+        <button class="primary" onclick="uploadDataset()">Upload Dataset</button>
+        <small id="uploadStatus"></small>
+      </div>
+
+      <div class="card" style="background:#020617">
+        <h4>⚡ Retrain Model</h4>
+        <button class="success" onclick="retrainModel()">Start Retraining</button>
+        <small id="retrainStatus"></small>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="admin-sections">
+
+    <!-- PREDICTION LOGS -->
+    <div class="card">
+      <h3>📜 Prediction Logs</h3>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Job Role</th>
+              <th>Confidence</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="logsTable"></tbody>
+        </table>
+      </div>
+    </div>
+  
+    <!-- FEEDBACK ANALYSIS -->
+    <div class="card">
+      <h3>📊 Feedback Analysis</h3>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Job Role</th>
+              <th>Avg Rating</th>
+              <th>Responses</th>
+            </tr>
+          </thead>
+          <tbody id="feedbackTable"></tbody>
+        </table>
+      </div>
+    </div>
+  
+  </div>
+  
+
+</div>
+</div>
+
+<script>
+const API="http://127.0.0.1:5000";
+const token=localStorage.getItem("token");
+if(!token) location.href="login.html";
+
+function api(url,method="GET",body){
+  return fetch(API+url,{
+    method,
+    headers:{
+      "Authorization":"Bearer "+token,
+      "Content-Type":"application/json"
+    },
+    body:body?JSON.stringify(body):null
+  }).then(r=>r.json());
+}
+
+document.addEventListener("DOMContentLoaded",async()=>{
+  const d = await api("/dashboard/user");
+  aname.textContent = d.user.name;
+  aemail.textContent = d.user.email;
+
+  await loadLogs();
+  await loadFeedback();
+});
+
+/* LOGS */
+async function loadLogs(){
+  const data = await api("/admin/prediction-logs");
+  logsTable.innerHTML = data.map(x=>`
+    <tr>
+      <td>${x.user}</td>
+      <td>${x.job_role}</td>
+      <td>${x.confidence}%</td>
+      <td><span class="badge ${x.status}">${x.status}</span></td>
+      <td>
+        ${x.status!=="reviewed"
+          ? `<button class="success" onclick="review('${x.user}','${x.job_role}')">Review</button>`
+          : "✔"}
+      </td>
+    </tr>
+  `).join("");
+}
+
+function review(user,job_role){
+  api("/admin/review-prediction","POST",{user,job_role})
+    .then(loadLogs);
+}
+
+/* FEEDBACK */
+async function loadFeedback(){
+  const data = await api("/admin/feedback-analysis");
+  feedbackTable.innerHTML = data.map(x=>`
+    <tr>
+      <td>${x.job_role}</td>
+      <td>${x.avg_rating}</td>
+      <td>${x.responses}</td>
+    </tr>
+  `).join("");
+}
+
+/* DATASET */
+async function uploadDataset(){
+  const file = datasetFile.files[0];
+  if(!file){alert("Select a file");return;}
+  const form = new FormData();
+  form.append("file",file);
+
+  const r = await fetch(API+"/admin/upload-dataset",{
+    method:"POST",
+    headers:{Authorization:"Bearer "+token},
+    body:form
+  });
+  const d = await r.json();
+  uploadStatus.textContent = d.message || d.error;
+}
+
+async function retrainModel(){
+  retrainStatus.textContent="Retraining started...";
+  const r = await fetch(API+"/admin/retrain-model",{
+    method:"POST",
+    headers:{
+      Authorization:"Bearer "+token,
+      "Content-Type":"application/json"
+    }
+  });
+  const d = await r.json();
+  retrainStatus.textContent = d.message || d.error;
+}
+
+async function loadKPIs(){
+  const d = await api("/admin/kpis");
+  kpiUsers.textContent = d.total_users;
+  kpiPredictions.textContent = d.total_predictions;
+  kpiToday.textContent = d.predictions_today;
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+    const d = await api("/dashboard/user");
+    aname.textContent = d.user.name;
+    aemail.textContent = d.user.email;
+
+    await loadKPIs();      // Load total users, predictions, today
+    await loadLogs();      // Load prediction logs
+    await loadFeedback();  // Load feedback analysis
+});
+
+async function loadKPIs(){
+    const d = await api("/admin/stats");
+    kpiUsers.textContent = d.total_users;
+    kpiPredictions.textContent = d.total_predictions;
+    kpiToday.textContent = d.predictions_today;
+}
+
+
+function logout(){
+  localStorage.removeItem("token");
+  location.href="login.html";
+}
+</script>
+
+</body>
+</html>

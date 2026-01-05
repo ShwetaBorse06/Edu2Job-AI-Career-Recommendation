@@ -1,11 +1,18 @@
+<<<<<<< HEAD
 # Python
 venv/
 __pycache__/
 *.pyc
+=======
+# Virtual environment
+venv/
+__pycache__/
+>>>>>>> 8b8fd3a (Initial commit - Edu2Job AI Career Recommendation System)
 
 # Environment variables
 .env
 
+<<<<<<< HEAD
 # ML models
 *.pkl
 *.joblib
@@ -23,3 +30,14 @@ uploads/
 .DS_Store
 Thumbs.db
 .vscode/
+=======
+# ML model files
+*.pkl
+
+# Uploads & temp
+uploads/
+
+# OS files
+.DS_Store
+Thumbs.db
+>>>>>>> 8b8fd3a (Initial commit - Edu2Job AI Career Recommendation System)

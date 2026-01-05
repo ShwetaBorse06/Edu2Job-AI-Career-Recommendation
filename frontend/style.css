@@ -1,0 +1,100 @@
+/* Global Styles */
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(to right, #6a11cb, #2575fc);
+    color: #333;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Container card */
+.container {
+    background: #fff;
+    padding: 40px 30px;
+    border-radius: 15px;
+    box-shadow: 0px 10px 30px rgba(0,0,0,0.2);
+    width: 350px;
+    text-align: center;
+    animation: fadeIn 0.8s ease;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Titles */
+h2 {
+    margin-bottom: 20px;
+    color: #2575fc;
+}
+
+/* Inputs */
+input {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    transition: 0.3s;
+}
+input:focus {
+    border-color: #2575fc;
+    box-shadow: 0 0 5px rgba(37,117,252,0.5);
+}
+
+/* Buttons */
+button {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(to right, #2575fc, #6a11cb);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+}
+button:hover {
+    transform: scale(1.05);
+}
+
+/* Links */
+a {
+    text-decoration: none;
+    color: #2575fc;
+    font-weight: 500;
+}
+a:hover {
+    text-decoration: underline;
+}
+
+/* Google login button container */
+.g_id_signin {
+    margin-top: 15px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+/* Dashboard & Profile card */
+#profile {
+    background: linear-gradient(to right, #6a11cb, #2575fc);
+    color: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    animation: fadeIn 0.8s ease;
+}
+
+#logout {
+    background: #ff4b5c;
+}
+#logout:hover {
+    background: #ff1f3b;
+}

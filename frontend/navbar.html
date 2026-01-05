@@ -1,0 +1,25 @@
+<div id="navbar" style="
+    background: #111; 
+    padding: 14px; 
+    color: white; 
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: Poppins, sans-serif;
+">
+    <div style="font-size: 20px; font-weight: bold;">MyApp</div>
+
+    <div>
+        <a href="dashboard.html" style="color:white; margin-right:20px; text-decoration:none;">Dashboard</a>
+        <a href="profile.html" style="color:white; margin-right:20px; text-decoration:none;">Profile</a>
+        <a href="education.html" class="btn">Add Education Details</a>
+        <a href="#" onclick="logout()" style="color:#ff4d4d; text-decoration:none;">Logout</a>
+    </div>
+</div>
+
+<script>
+function logout() {
+    localStorage.removeItem("token");
+    window.location.href = "login.html";
+}
+</script>

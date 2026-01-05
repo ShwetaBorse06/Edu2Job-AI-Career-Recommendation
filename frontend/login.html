@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Edu2Job</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+</head>
+<body>
+    <div class="container">
+        <h2>Login to Edu2Job</h2>
+
+        <form id="loginForm" autocomplete="off">
+            <input type="email" id="email" placeholder="Email" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+
+        <!-- Google Sign-In -->
+        <div id="g_id_onload"
+             data-client_id="68139937926-vmt33ecismjicedtubi34n1djhpr7bms.apps.googleusercontent.com"
+             data-context="signin"
+             data-callback="handleGoogleLogin"
+             data-auto_prompt="false">
+        </div>
+
+        <div class="g_id_signin"
+             data-type="standard"
+             data-shape="rectangular"
+             data-theme="filled_blue"
+             data-text="signin_with"
+             data-size="large"
+             data-logo_alignment="left">
+        </div>
+
+        <p style="margin-top:14px">Don't have an account? <a href="signup.html">Sign up here</a></p>
+    </div>
+
+<script>
+const API_BASE = "http://127.0.0.1:5000";
+
+// Email / password login
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+
+    try {
+        const res = await fetch(`${API_BASE}/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.token) {
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("user", JSON.stringify(data.user));
+            Swal.fire({ icon: 'success', title: 'Login Successful', showConfirmButton: false, timer: 900 })
+                .then(() => window.location.href = "dashboard.html");
+        } else {
+            Swal.fire({ icon: 'error', title: 'Login Failed', text: data.error || "Invalid credentials" });
+        }
+    } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Something went wrong. Try again.' });
+        console.error(err);
+    }
+});
+
+// Google Sign-in handler called by Google's library
+async function handleGoogleLogin(response) {
+    try {
+        // response.credential is the ID token from Google
+        const res = await fetch(`${API_BASE}/google-login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: response.credential })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.token) {
+            // Backend returns { token, user }
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("user", JSON.stringify(data.user));
+            Swal.fire({ icon: 'success', title: 'Login Successful', showConfirmButton: false, timer: 900 })
+                .then(() => window.location.href = "dashboard.html");
+        } else {
+            Swal.fire({ icon: 'error', title: 'Google Login Failed', text: data.error || data.details || "Try again." });
+            console.error("Google login error:", data);
+        }
+    } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Google login failed.' });
+        console.error(err);
+    }
+}
+</script>
+</body>
+</html>

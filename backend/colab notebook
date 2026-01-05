@@ -1,0 +1,233 @@
+# ==========================================================
+# EDU2JOB – MULTI-DATASET MERGE, TRAINING & RECOMMENDATION
+# Milestone 3 (Day 6–7) | FINAL COLAB VERSION
+# ==========================================================
+
+import pandas as pd
+import numpy as np
+import pickle
+import os
+import matplotlib.pyplot as plt
+import warnings
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, MinMaxScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, f1_score
+from xgboost import XGBClassifier
+
+warnings.filterwarnings("ignore")
+
+# ==========================================================
+# 0. FILE CHECK
+# ==========================================================
+required_files = [
+    "education_career_success.csv",
+    "career_dataset_large.xlsx",
+    "Placement.csv",
+    "candidate_job_role_dataset.csv"
+]
+
+print("🔍 Checking dataset files...")
+for f in required_files:
+    print("✅ Found:" if os.path.exists(f) else "❌ Missing:", f)
+
+# ==========================================================
+# 1. LOAD DATASETS
+# ==========================================================
+print("\n🔄 Loading datasets...")
+
+df_success = pd.read_csv("education_career_success.csv")
+df_large = pd.read_excel("career_dataset_large.xlsx")
+df_placement = pd.read_csv("Placement.csv")
+df_candidate = pd.read_csv("candidate_job_role_dataset.csv")
+
+# ==========================================================
+# 2. STANDARDIZATION
+# ==========================================================
+
+df1 = pd.DataFrame({
+    "CGPA": df_success["University_GPA"] * 25,
+    "Internships": df_success["Internships_Completed"].fillna(0),
+    "Specialization": df_success["Field_of_Study"],
+    "Target": df_success["Current_Job_Level"]
+})
+
+df2 = pd.DataFrame({
+    "CGPA": df_large["CGPA/Percentage"],
+    "Internships": 0,
+    "Specialization": df_large["Specialization"],
+    "Target": df_large["Recommended Career"]
+})
+
+df3 = pd.DataFrame({
+    "CGPA": df_placement["CGPA"] * 10,
+    "Internships": df_placement["Internships"],
+    "Specialization": "General",
+    "Target": df_placement["Placed"].map({"Yes": "Placed", "No": "Not Placed"})
+})
+
+exp_map = {"Entry": 0, "Mid": 2, "Senior": 4}
+df4 = pd.DataFrame({
+    "CGPA": 75.0,
+    "Internships": df_candidate["experience_level"].map(exp_map).fillna(0),
+    "Specialization": df_candidate["qualification"],
+    "Target": df_candidate["job_role"]
+})
+
+# ==========================================================
+# 3. MERGE & CLEAN
+# ==========================================================
+master_df = pd.concat([df1, df2, df3, df4], ignore_index=True)
+
+master_df["CGPA"] = master_df["CGPA"].clip(0, 100)
+master_df["Internships"] = master_df["Internships"].fillna(0).astype(int)
+master_df["Specialization"] = master_df["Specialization"].fillna("Unknown")
+master_df["Target"] = master_df["Target"].fillna("Unknown")
+
+print("📊 Master dataset shape:", master_df.shape)
+
+master_df.to_csv("merged_master_dataset.csv", index=False)
+print("✅ merged_master_dataset.csv saved")
+
+# ==========================================================
+# 4. ENCODING & SCALING
+# ==========================================================
+le_spec = LabelEncoder()
+master_df["Specialization_Enc"] = le_spec.fit_transform(master_df["Specialization"])
+
+target_counts = master_df["Target"].value_counts()
+valid_targets = target_counts[target_counts >= 2].index
+master_df = master_df[master_df["Target"].isin(valid_targets)]
+
+le_target = LabelEncoder()
+master_df["Target_Enc"] = le_target.fit_transform(master_df["Target"])
+
+scaler = MinMaxScaler()
+master_df[["CGPA_S", "Intern_S"]] = scaler.fit_transform(
+    master_df[["CGPA", "Internships"]]
+)
+
+X = master_df[["CGPA_S", "Intern_S", "Specialization_Enc"]]
+y = master_df["Target_Enc"]
+
+# ==========================================================
+# 5. TRAIN-TEST SPLIT
+# ==========================================================
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+
+# ==========================================================
+# 6. MODEL TRAINING
+# ==========================================================
+rf_model = RandomForestClassifier(
+    n_estimators=200,
+    random_state=42,
+    class_weight="balanced"
+)
+rf_model.fit(X_train, y_train)
+
+xgb_model = XGBClassifier(
+    objective="multi:softprob",
+    eval_metric="mlogloss",
+    n_estimators=200,
+    random_state=42
+)
+xgb_model.fit(X_train, y_train)
+
+rf_acc = accuracy_score(y_test, rf_model.predict(X_test))
+xgb_acc = accuracy_score(y_test, xgb_model.predict(X_test))
+
+rf_f1 = f1_score(y_test, rf_model.predict(X_test), average="weighted")
+xgb_f1 = f1_score(y_test, xgb_model.predict(X_test), average="weighted")
+
+print(f"✅ RF Accuracy: {rf_acc:.2%}, F1: {rf_f1:.2f}")
+print(f"✅ XGB Accuracy: {xgb_acc:.2%}, F1: {xgb_f1:.2f}")
+
+# ==========================================================
+# 7. SAVE MODELS & METADATA
+# ==========================================================
+os.makedirs("model", exist_ok=True)
+
+pickle.dump(rf_model, open("model/rf_model.pkl", "wb"))
+pickle.dump(xgb_model, open("model/xgb_model.pkl", "wb"))
+
+pickle.dump({
+    "le_spec": le_spec,
+    "le_target": le_target,
+    "scaler": scaler,
+    "features": ["CGPA", "Internships", "Specialization"]
+}, open("model/encoders.pkl", "wb"))
+
+print("💾 Models & encoders saved")
+
+# ==========================================================
+# 8. TOP-5 RECOMMENDATION FUNCTION (DAY 7)
+# ==========================================================
+def get_top_recommendations(cgpa, internships, specialization, top_k=5):
+    if specialization not in le_spec.classes_:
+        specialization = "Unknown"
+
+    spec_code = le_spec.transform([specialization])[0]
+
+    input_df = pd.DataFrame(
+        [[cgpa, internships]],
+        columns=["CGPA", "Internships"]
+    )
+
+    scaled_vals = scaler.transform(input_df)[0]
+    final_input = np.array([[scaled_vals[0], scaled_vals[1], spec_code]])
+
+    probs = xgb_model.predict_proba(final_input)[0]
+    top_idx = np.argsort(probs)[-top_k:][::-1]
+
+    return [
+        {
+            "role": le_target.inverse_transform([i])[0],
+            "confidence": f"{probs[i]*100:.2f}%"
+        }
+        for i in top_idx if probs[i] > 0.001
+    ]
+
+# ==========================================================
+# 9. DEMO OUTPUT (SHOW THIS TO MENTOR)
+# ==========================================================
+print("\n🎯 Sample Recommendations:")
+
+results = get_top_recommendations(
+    cgpa=85,
+    internships=3,
+    specialization="Computer Science"
+)
+
+for r in results:
+    print(f"- {r['role']} → {r['confidence']}")
+
+print("\n✅ Milestone-3 Dataset + Model Pipeline COMPLETE")
+
+# ================================
+# EXPORT FILES FOR BACKEND (FINAL)
+# ================================
+import pickle
+import os
+
+os.makedirs("backend_model", exist_ok=True)
+
+# Save BEST model (XGBoost recommended)
+with open("backend_model/job_role_model.pkl", "wb") as f:
+    pickle.dump(xgb_model, f)
+
+# Save encoders + scaler together
+with open("backend_model/preprocessing.pkl", "wb") as f:
+    pickle.dump({
+        "le_spec": le_spec,
+        "le_target": le_target,
+        "scaler": scaler
+    }, f)
+
+print("✅ Backend-ready PKL files created")
+print("📁 backend_model/")
+print(" ├── job_role_model.pkl")
+print(" └── preprocessing.pkl")
+

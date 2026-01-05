@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Edu2Job • Smart Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+:root{
+  --bg:#0f172a; --card:#111827; --accent:#38bdf8;
+  --muted:#94a3b8; --text:#e5e7eb; --danger:#ef4444; --success:#22c55e;
+}
+
+*{font-family:Poppins;margin:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);display:flex}
+.sidebar{width:240px;background:#020617;min-height:100vh;padding:25px}
+.sidebar h2{color:var(--accent);margin-bottom:40px}
+.sidebar a{display:block;color:var(--muted);margin:18px 0;text-decoration:none}
+.sidebar a:hover{color:var(--accent)}
+.main{flex:1;padding:30px}
+
+/* HORIZONTAL LAYOUT FOR CARDS */
+.grid {
+  display: flex;           /* flex layout for horizontal alignment */
+  gap: 24px;               /* spacing between cards */
+  overflow-x: auto;        /* allow horizontal scroll on small screens */
+  padding-bottom: 10px;
+  flex-wrap: wrap;          /* wrap cards to next line on very small screens */
+}
+
+.card {
+  background:var(--card);
+  padding:20px;
+  border-radius:16px;
+  box-shadow:0 15px 40px rgba(0,0,0,.4);
+  flex: 0 0 320px;         /* fixed width for each card */
+  min-width: 320px;
+}
+
+.card h3{margin-bottom:12px}
+button{background:var(--accent);border:none;padding:10px;border-radius:8px;width:100%;font-weight:700;cursor:pointer}
+button.danger{background:var(--danger)}
+button.success{background:var(--success)}
+input,select{width:100%;padding:10px;border-radius:8px;border:none;margin-bottom:10px}
+.admin-only,.user-only{display:none}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:8px;border-bottom:1px solid #1e293b;text-align:left}
+th{color:var(--accent)}
+.badge{padding:4px 8px;border-radius:6px;font-size:12px}
+.normal{background:#334155}
+.flagged{background:#b45309}
+.reviewed{background:#15803d}
+
+/* HIDE SCROLLBAR FOR CLEAN LOOK (optional) */
+.grid::-webkit-scrollbar { height: 6px; }
+.grid::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
+</style>
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <h2>🎓 Edu2Job</h2>
+  <a href="dashboard.html">Dashboard</a>
+  <a href="profile.html">Profile</a>
+  <a href="education.html" class="user-only">Education</a>
+  <a onclick="logout()" style="cursor:pointer;color:#ef4444">
+    <i class="fa fa-sign-out-alt"></i> Logout
+  </a>
+</div>
+
+<div class="main">
+<h1>Smart Career Dashboard</h1>
+
+<div class="grid">
+
+  <!-- USER DETAILS -->
+  <div class="card">
+    <h3>👤 User Details</h3>
+    <p>Name: <b id="uname">—</b></p>
+    <p>Email: <b id="uemail">—</b></p>
+    <p>Role: <b id="urole">—</b></p>
+  </div>
+
+  <div class="card user-only">
+    <h3>🎓 Education</h3>
+    <p>Degree: <b id="degree">—</b></p>
+    <p>Specialization: <b id="spec">—</b></p>
+    <p>CGPA: <b id="cgpa">—</b></p>
+    <input id="internships" type="number" placeholder="Internships"/>
+    <button onclick="predict()">Predict Job Roles</button>
+  </div>
+
+  <div class="card user-only">
+    <h3>🛠 Skills</h3>
+    <input id="skillsInput" placeholder="e.g. Python, SQL, Excel"/>
+    <button onclick="saveSkills()">Save Skills</button>
+    <p style="margin-top:10px;color:var(--success)">Saved Skills:</p>
+    <p id="savedSkills">—</p>
+  </div>
+
+  <div class="card user-only">
+    <h3>💼 Top Job Roles</h3>
+    <div id="roles"></div>
+  </div>
+
+  <div class="card user-only">
+    <h3>📊 Prediction Confidence</h3>
+    <canvas id="confidenceChart"></canvas>
+  </div>
+
+  <div class="card user-only">
+    <h3>🥧 Role Distribution</h3>
+    <canvas id="rolePieChart"></canvas>
+  </div>
+
+  <div class="card user-only">
+    <h3>⭐ Prediction Feedback</h3>
+    <select id="feedbackRole"></select>
+    <select id="rating">
+      <option value="5">Excellent</option>
+      <option value="4">Good</option>
+      <option value="3">Average</option>
+      <option value="2">Poor</option>
+    </select>
+    <button onclick="submitFeedback()">Submit Feedback</button>
+  </div>
+
+  <div class="card user-only">
+    <h3>📈 Career Insights</h3>
+    <p id="insightText">—</p>
+  </div>
+
+  <div class="card user-only">
+    <h3>📜 Prediction History</h3>
+    <ul id="history"></ul>
+  </div>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// API & token
+const API="http://127.0.0.1:5000";
+const token=localStorage.getItem("token");
+if(!token) location.href="login.html";
+
+// Get user role
+function getRole(){
+  try{return JSON.parse(atob(token.split(".")[1])).role}catch{return "user"}
+}
+const role=getRole();
+
+// API helper
+async function api(url,method="GET",body){
+  const r=await fetch(API+url,{
+    method,
+    headers:{
+      "Authorization":"Bearer "+token,
+      "Content-Type":"application/json"
+    },
+    body:body?JSON.stringify(body):null
+  });
+  return r.json();
+}
+
+// On load
+document.addEventListener("DOMContentLoaded",async()=>{
+  if(role==="admin"){
+    location.href="admin.html";
+    return;
+  }
+  document.querySelectorAll(".user-only").forEach(e=>e.style.display="block");
+  await loadUser();
+  await loadHistory();
+  await loadInsights();
+});
+
+/* USER FUNCTIONS */
+async function loadUser(){
+  const d=await api("/dashboard/user");
+  uname.textContent=d.user.name;
+  uemail.textContent=d.user.email;
+  if(d.education){
+    degree.textContent=d.education.degree;
+    spec.textContent=d.education.specialization;
+    cgpa.textContent=d.education.cgpa;
+  }
+}
+
+async function predict(){
+  const r=await api("/predict-job-role","POST",{internships:internships.value});
+  roles.innerHTML=""; feedbackRole.innerHTML="";
+  r.top_5_job_roles.forEach(x=>{
+    roles.innerHTML+=`<p>${x.job_role} (${x.confidence}%)</p>`;
+    feedbackRole.innerHTML+=`<option>${x.job_role}</option>`;
+  });
+  renderUserCharts(r.top_5_job_roles);
+  await loadHistory(); await loadInsights();
+}
+
+async function saveSkills(){
+  await api("/user/skills","POST",{skills:skillsInput.value});
+  savedSkills.textContent=skillsInput.value;
+}
+
+function submitFeedback(){
+  api("/user/feedback","POST",{job_role:feedbackRole.value,rating:rating.value})
+  .then(()=>alert("Feedback submitted"));
+}
+
+async function loadHistory(){
+  const h=await api("/user/prediction-history");
+  history.innerHTML = h.map(p =>
+  `<li>${p.job_role} (${p.confidence}%)</li>`
+).join("");
+
+}
+
+async function loadInsights(){
+  const r=await api("/api/insights/career-summary");
+  insightText.textContent=r.insight;
+}
+
+/* CHARTS */
+let confChart,pieChart;
+function renderUserCharts(preds){
+  const labels=preds.map(p=>p.job_role);
+  const values=preds.map(p=>p.confidence);
+
+  if(confChart) confChart.destroy();
+  confChart=new Chart(confidenceChart,{type:"bar",data:{labels,datasets:[{data:values}]}});
+
+  if(pieChart) pieChart.destroy();
+  pieChart=new Chart(rolePieChart,{type:"pie",data:{labels,datasets:[{data:values}]}})
+}
+
+function logout(){localStorage.removeItem("token");location.href="login.html";}
+</script>
+
+</body>
+</html>

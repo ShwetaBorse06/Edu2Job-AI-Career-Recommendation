@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Career Prediction</title>
+</head>
+<body>
+
+<h2>Career Recommendation</h2>
+
+<input id="cgpa" placeholder="CGPA (0–100)">
+<input id="interns" placeholder="Internships">
+<input id="spec" placeholder="Specialization">
+<button onclick="predict()">Predict</button>
+
+<div id="result"></div>
+
+<script>
+    const token = localStorage.getItem("token");
+    
+    function predict() {
+      fetch("http://127.0.0.1:5000/predict-job-role", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({
+          cgpa: Number(document.getElementById("cgpa").value),
+          internships: Number(document.getElementById("interns").value),
+          specialization: document.getElementById("spec").value
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if(data.status !== "success"){
+          document.getElementById("result").innerHTML =
+            "<p style='color:red'>" + data.message + "</p>";
+          return;
+        }
+    
+        let html = "<h3>Top Career Matches</h3>";
+        data.recommendations.forEach(r => {
+          html += `<p>✅ ${r.job_role} – <b>${r.confidence}%</b></p>`;
+        });
+        document.getElementById("result").innerHTML = html;
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Prediction failed");
+      });
+    }
+    </script>
+    
+</body>
+</html>
