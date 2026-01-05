@@ -1,0 +1,25 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+
+# ML models
+*.pkl
+*.joblib
+
+# Datasets (important)
+backend/datasets/*.csv
+
+# Frontend
+node_modules/
+
+# Uploads
+uploads/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
