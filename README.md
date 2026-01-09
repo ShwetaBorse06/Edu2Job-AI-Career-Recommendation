@@ -24,6 +24,10 @@ Edu2Job is an AI-powered web application that recommends suitable job roles base
 
 ---
 
+## 📜 License
+This project is licensed under the MIT License.
+
+---
 ## ⚙️ How to Run the Project
 
 ### Backend
